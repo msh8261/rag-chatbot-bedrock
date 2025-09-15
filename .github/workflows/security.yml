@@ -1,0 +1,165 @@
+name: Security Scanning and Compliance
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Run daily at 2 AM
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  security-scan:
+    name: 'Security Scan'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run Bandit security linter
+      run: |
+        pip install bandit
+        bandit -r application/ -f json -o bandit-results.json || true
+
+    - name: Run Safety check
+      run: |
+        pip install safety
+        safety check --json --output safety-results.json || true
+
+  aws-security-scan:
+    name: 'AWS Security Scan'
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Run AWS Security Hub findings check
+      run: |
+        # Get Security Hub findings
+        aws securityhub get-findings \
+          --filters '{"RecordState": [{"Value": "ACTIVE", "Comparison": "EQUALS"}]}' \
+          --query 'Findings[].{Id:Id,Title:Title,Severity:SeverityLabel,Status:RecordState}' \
+          --output table
+
+    - name: Run GuardDuty findings check
+      run: |
+        # Get GuardDuty findings
+        aws guardduty list-findings \
+          --detector-id $(aws guardduty list-detectors --query 'DetectorIds[0]' --output text) \
+          --query 'FindingIds' \
+          --output text
+
+    - name: Check IAM policies for overly permissive access
+      run: |
+        # Check for overly permissive IAM policies
+        aws iam list-policies --query 'Policies[?contains(PolicyName, `rag-chatbot`)].{Name:PolicyName,Arn:Arn}' --output table
+
+  compliance-check:
+    name: 'Compliance Check'
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Check encryption at rest
+      run: |
+        # Check S3 bucket encryption
+        aws s3api get-bucket-encryption --bucket $(aws s3api list-buckets --query 'Buckets[?contains(Name, `rag-chatbot-prod`)].Name' --output text) || echo "No encryption found"
+
+    - name: Check VPC endpoints
+      run: |
+        # Check VPC endpoints
+        aws ec2 describe-vpc-endpoints --query 'VpcEndpoints[?contains(Tags[?Key==`Project`].Value, `rag-chatbot`)].{ServiceName:ServiceName,State:State}' --output table
+
+    - name: Check CloudTrail logging
+      run: |
+        # Check CloudTrail trails
+        aws cloudtrail describe-trails --query 'trailList[?contains(Name, `rag-chatbot`)].{Name:Name,IsLogging:IsLogging}' --output table
+
+  container-security:
+    name: 'Container Security'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy container scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'python:3.11-slim'
+        format: 'sarif'
+        output: 'container-scan-results.sarif'
+
+    - name: Upload container scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'container-scan-results.sarif'
+
+  dependency-check:
+    name: 'Dependency Check'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        cd application/frontend
+        pip install -r requirements.txt
+        cd ../backend
+        pip install -r requirements.txt
+
+    - name: Run Safety check
+      run: |
+        pip install safety
+        safety check --json --output safety-results.json
+
+    - name: Upload safety results
+      uses: actions/upload-artifact@v3
+      with:
+        name: safety-results
+        path: safety-results.json
