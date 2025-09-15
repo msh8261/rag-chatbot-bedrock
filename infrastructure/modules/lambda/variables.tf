@@ -43,6 +43,7 @@ variable "dynamodb_table_name" {
 variable "opensearch_endpoint" {
   description = "OpenSearch endpoint"
   type        = string
+  default     = ""
 }
 
 variable "s3_bucket_name" {
@@ -85,8 +86,81 @@ variable "api_gateway_execution_arn" {
   default     = ""
 }
 
+variable "lambda_function_filename" {
+  description = "Lambda function filename (without .py extension)"
+  type        = string
+  default     = "lambda_function"
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)
   default     = {}
+}
+
+# Lambda Configuration
+variable "runtime" {
+  description = "Lambda runtime"
+  type        = string
+  default     = "python3.11"
+}
+
+variable "log_level" {
+  description = "Log level for Lambda function"
+  type        = string
+  default     = "INFO"
+}
+
+variable "tracing_mode" {
+  description = "X-Ray tracing mode"
+  type        = string
+  default     = "Active"
+}
+
+variable "authorization_type" {
+  description = "Lambda function URL authorization type"
+  type        = string
+  default     = "NONE"
+}
+
+variable "cors_allow_origins" {
+  description = "CORS allowed origins"
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "cors_allow_methods" {
+  description = "CORS allowed methods"
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "cors_allow_headers" {
+  description = "CORS allowed headers"
+  type        = list(string)
+  default     = ["date", "keep-alive"]
+}
+
+variable "cors_expose_headers" {
+  description = "CORS exposed headers"
+  type        = list(string)
+  default     = ["date", "keep-alive"]
+}
+
+variable "cors_max_age" {
+  description = "CORS max age"
+  type        = number
+  default     = 86400
+}
+
+variable "schedule_expression" {
+  description = "CloudWatch Events schedule expression"
+  type        = string
+  default     = "rate(5 minutes)"
+}
+
+variable "compatible_runtimes" {
+  description = "Compatible runtimes for Lambda layer"
+  type        = list(string)
+  default     = ["python3.11"]
 }

@@ -70,7 +70,8 @@ output "vpc_endpoint_lambda_id" {
   value       = aws_vpc_endpoint.lambda.id
 }
 
-output "vpc_endpoint_opensearch_id" {
-  description = "ID of the OpenSearch VPC endpoint"
-  value       = aws_vpc_endpoint.opensearch.id
-}
+# OpenSearch VPC endpoint output commented out (service not available)
+# output "vpc_endpoint_opensearch_id" {
+#   description = "ID of the OpenSearch VPC endpoint"
+#   value       = aws_vpc_endpoint.opensearch.id
+# }

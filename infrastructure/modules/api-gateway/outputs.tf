@@ -25,6 +25,16 @@ output "api_gateway_stage_name" {
   value       = aws_api_gateway_stage.main.stage_name
 }
 
+output "api_gateway_name" {
+  description = "Name of the API Gateway"
+  value       = aws_api_gateway_rest_api.main.name
+}
+
+output "api_gateway_domain" {
+  description = "Domain name of the API Gateway"
+  value       = "${aws_api_gateway_rest_api.main.id}.execute-api.${data.aws_region.current.name}.amazonaws.com"
+}
+
 output "api_gateway_usage_plan_id" {
   description = "ID of the API Gateway usage plan"
   value       = aws_api_gateway_usage_plan.main.id

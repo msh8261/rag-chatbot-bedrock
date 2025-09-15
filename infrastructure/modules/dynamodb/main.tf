@@ -23,14 +23,14 @@ resource "aws_dynamodb_table" "chat_history" {
   }
 
   global_secondary_index {
-    name     = "user-session-index"
-    hash_key = "user_id"
-    range_key = "timestamp"
+    name            = "user-session-index"
+    hash_key        = "user_id"
+    range_key       = "timestamp"
+    projection_type = "ALL"
   }
 
   server_side_encryption {
-    enabled     = true
-    kms_key_id  = var.kms_key_id
+    enabled = true
   }
 
   point_in_time_recovery {
@@ -59,13 +59,13 @@ resource "aws_dynamodb_table" "user_sessions" {
   }
 
   global_secondary_index {
-    name     = "session-index"
-    hash_key = "session_id"
+    name            = "session-index"
+    hash_key        = "session_id"
+    projection_type = "ALL"
   }
 
   server_side_encryption {
-    enabled     = true
-    kms_key_id  = var.kms_key_id
+    enabled = true
   }
 
   point_in_time_recovery {
@@ -94,8 +94,7 @@ resource "aws_dynamodb_table" "app_config" {
   }
 
   server_side_encryption {
-    enabled     = true
-    kms_key_id  = var.kms_key_id
+    enabled = true
   }
 
   point_in_time_recovery {

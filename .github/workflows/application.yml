@@ -11,9 +11,9 @@ on:
       - 'application/**'
 
 env:
-  AWS_REGION: 'us-east-1'
-  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-  ECR_REPOSITORY: rag-chatbot
+  AWS_REGION: 'ap-southeast-1'
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-1.amazonaws.com
+  ECR_REPOSITORY: rag-chatbot-prod-frontend
 
 jobs:
   build-frontend:
@@ -29,7 +29,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: ${{ env.AWS_REGION }}
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -42,9 +42,9 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
       run: |
         cd application/frontend
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY-frontend:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY-frontend:$IMAGE_TAG
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY-frontend:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
     - name: Output image name
       run: 'echo "Frontend image: ${{ steps.build-frontend.outputs.image }}"'
@@ -94,10 +94,21 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: ${{ env.AWS_REGION }}
 
-    - name: Update ECS service
+    - name: Download .env file
+      uses: actions/download-artifact@v3
+      with:
+        name: env-file
+        path: .
+
+    - name: Update ECS task definition with new image
       run: |
+        # Get the ECR repository URI from Terraform output
+        ECR_URI=$(aws ecr describe-repositories --repository-names rag-chatbot-prod-frontend --query 'repositories[0].repositoryUri' --output text)
+        NEW_IMAGE="$ECR_URI:${{ github.sha }}"
+        
+        # Update ECS service with new image
         aws ecs update-service \
           --cluster rag-chatbot-prod-cluster \
           --service rag-chatbot-prod-service \
@@ -125,7 +136,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: ${{ env.AWS_REGION }}
 
     - name: Download Lambda package
       uses: actions/download-artifact@v3
@@ -154,13 +165,13 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: ${{ env.AWS_REGION }}
 
     - name: Get API Gateway URL
       id: get-api-url
       run: |
         API_URL=$(aws apigateway get-rest-apis --query 'items[?name==`rag-chatbot-prod-api`].id' --output text)
-        echo "api_url=https://$API_URL.execute-api.${{ secrets.AWS_REGION }}.amazonaws.com/prod" >> $GITHUB_OUTPUT
+        echo "api_url=https://$API_URL.execute-api.${{ env.AWS_REGION }}.amazonaws.com/prod" >> $GITHUB_OUTPUT
 
     - name: Test API endpoint
       run: |

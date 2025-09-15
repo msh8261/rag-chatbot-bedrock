@@ -1,5 +1,54 @@
 # ECS Module - Secure RAG Chatbot ECS Cluster and Service
 
+# Data sources
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+# ECR Repository for Frontend
+resource "aws_ecr_repository" "frontend" {
+  name                 = "${var.project_name}-${var.environment}-frontend"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  encryption_configuration {
+    encryption_type = "AES256"
+  }
+
+  tags = var.tags
+}
+
+# ECR Repository Policy
+resource "aws_ecr_repository_policy" "frontend" {
+  repository = aws_ecr_repository.frontend.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowPushPull"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action = [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload"
+        ]
+      }
+    ]
+  })
+}
+
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "${var.project_name}-${var.environment}-cluster"
@@ -38,7 +87,7 @@ resource "aws_ecs_task_definition" "main" {
   container_definitions = jsonencode([
     {
       name  = "rag-chatbot-frontend"
-      image = var.container_image
+      image = "${aws_ecr_repository.frontend.repository_url}:latest"
       
       portMappings = [
         {
@@ -57,6 +106,13 @@ resource "aws_ecs_task_definition" "main" {
           name  = "ENVIRONMENT"
           value = var.environment
         }
+      ]
+      
+
+      command = [
+        "/bin/bash",
+        "-c",
+        "pip install streamlit requests boto3 python-dotenv && echo 'import streamlit as st\nimport requests\nimport json\nimport uuid\nfrom datetime import datetime\nimport os\n\n# Load .env file for local development (if exists)\ntry:\n    from dotenv import load_dotenv\n    load_dotenv()\nexcept ImportError:\n    pass  # dotenv not available, environment variables set by ECS\n\n# Environment variables are set by ECS task definition in production\n# For local development, use: python scripts/get-api-url.py\n\n# Page configuration\nst.set_page_config(\n    page_title=\"RAG Chatbot\",\n    page_icon=\"🤖\",\n    layout=\"wide\",\n    initial_sidebar_state=\"expanded\"\n)\n\n# Get API Gateway URL from environment variable\nAPI_GATEWAY_URL = os.getenv(\"API_GATEWAY_URL\", \"https://362r2dpx1l.execute-api.ap-southeast-1.amazonaws.com/prod\")\n\n# Main application\ndef main():\n    st.title(\"🤖 RAG Chatbot\")\n    st.markdown(\"Ask questions and get intelligent responses powered by AWS Bedrock.\")\n    \n    # Initialize session state\n    if \"messages\" not in st.session_state:\n        st.session_state.messages = []\n    \n    if \"session_id\" not in st.session_state:\n        st.session_state.session_id = str(uuid.uuid4())\n    \n    # Display chat messages\n    for message in st.session_state.messages:\n        with st.chat_message(message[\"role\"]):\n            st.markdown(message[\"content\"])\n    \n    # Chat input\n    if prompt := st.chat_input(\"What would you like to know?\"):\n        # Add user message to chat history\n        st.session_state.messages.append({\"role\": \"user\", \"content\": prompt})\n        \n        # Display user message\n        with st.chat_message(\"user\"):\n            st.markdown(prompt)\n        \n        # Get response from API\n        with st.chat_message(\"assistant\"):\n            with st.spinner(\"Thinking...\"):\n                try:\n                    response = requests.post(\n                        f\"{API_GATEWAY_URL}/chat\",\n                        json={\n                            \"message\": prompt,\n                            \"session_id\": st.session_state.session_id\n                        },\n                        timeout=30\n                    )\n                    \n                    if response.status_code == 200:\n                        data = response.json()\n                        assistant_message = data.get(\"response\", \"Sorry, I could not process your request.\")\n                        \n                        # Add assistant message to chat history\n                        st.session_state.messages.append({\"role\": \"assistant\", \"content\": assistant_message})\n                        \n                        # Display assistant message\n                        st.markdown(assistant_message)\n                    else:\n                        error_msg = f\"Error: {response.status_code} - {response.text}\"\n                        st.error(error_msg)\n                        st.session_state.messages.append({\"role\": \"assistant\", \"content\": error_msg})\n                        \n                except requests.exceptions.RequestException as e:\n                    error_msg = f\"Connection error: {str(e)}\"\n                    st.error(error_msg)\n                    st.session_state.messages.append({\"role\": \"assistant\", \"content\": error_msg})\n                except Exception as e:\n                    error_msg = f\"Unexpected error: {str(e)}\"\n                    st.error(error_msg)\n                    st.session_state.messages.append({\"role\": \"assistant\", \"content\": error_msg})\n    \n    # Sidebar\n    with st.sidebar:\n        st.header(\"Settings\")\n        st.write(f\"**API Gateway URL:**\")\n        st.code(API_GATEWAY_URL)\n        \n        st.write(f\"**Session ID:**\")\n        st.code(st.session_state.session_id)\n        \n        if st.button(\"Clear Chat History\"):\n            st.session_state.messages = []\n            st.rerun()\n        \n        st.markdown(\"---\")\n        st.markdown(\"**About**\")\n        st.markdown(\"This chatbot uses AWS Bedrock for AI responses and is deployed on AWS ECS.\")\n\nif __name__ == \"__main__\":\n    main()' > app.py && streamlit run app.py --server.port=8501 --server.address=0.0.0.0"
       ]
       
       logConfiguration = {
@@ -127,10 +183,11 @@ resource "aws_lb" "main" {
 
 # ALB Target Group
 resource "aws_lb_target_group" "main" {
-  name     = "${var.project_name}-${var.environment}-tg"
-  port     = 8501
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
+  name        = "${var.project_name}-${var.environment}-tg-v2"
+  port        = 8501
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
 
   health_check {
     enabled             = true
@@ -142,6 +199,10 @@ resource "aws_lb_target_group" "main" {
     matcher             = "200"
     port                = "traffic-port"
     protocol            = "HTTP"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 
   tags = var.tags
@@ -183,7 +244,7 @@ resource "aws_lb_listener" "https" {
 resource "aws_cloudwatch_log_group" "ecs" {
   name              = "/aws/ecs/${var.project_name}-${var.environment}"
   retention_in_days = var.log_retention_days
-  kms_key_id        = var.kms_key_id
+  # kms_key_id        = var.kms_key_id  # Removed to avoid dependency issues
 
   tags = var.tags
 }
@@ -194,5 +255,3 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# Data source for current region
-data "aws_region" "current" {}

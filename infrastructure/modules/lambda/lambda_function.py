@@ -5,10 +5,9 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, List
 import uuid
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Environment variables are set by Lambda function configuration in production
+# No .env file needed - fully automated!
 
 # Configure logging
 logger = logging.getLogger()

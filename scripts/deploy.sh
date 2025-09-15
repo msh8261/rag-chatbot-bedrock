@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # RAG Chatbot Deployment Script
+# Copyright (c) 2025 RAG Chatbot Project
+# Licensed under the MIT License
 # This script automates the deployment of the RAG Chatbot infrastructure and application
 
 set -e
@@ -16,7 +18,7 @@ NC='\033[0m' # No Color
 TERRAFORM_DIR="infrastructure/terraform"
 APPLICATION_DIR="application"
 ENVIRONMENT=${1:-prod}
-AWS_REGION=${2:-us-east-1}
+AWS_REGION=${2:-ap-southeast-1}
 
 # Functions
 log_info() {
@@ -39,10 +41,21 @@ check_prerequisites() {
     log_info "Checking prerequisites..."
     
     # Check if required tools are installed
-    command -v terraform >/dev/null 2>&1 || { log_error "Terraform is required but not installed. Aborting."; exit 1; }
+    # Try to find terraform in common locations
+    TERRAFORM_CMD=""
+    if command -v terraform >/dev/null 2>&1; then
+        TERRAFORM_CMD="terraform"
+    elif [ -f "/c/Users/mohsen/AppData/Local/Programs/Terraform/terraform.exe" ]; then
+        TERRAFORM_CMD="/c/Users/mohsen/AppData/Local/Programs/Terraform/terraform.exe"
+    elif [ -f "terraform.exe" ]; then
+        TERRAFORM_CMD="./terraform.exe"
+    else
+        log_error "Terraform is required but not installed. Aborting."
+        exit 1
+    fi
     command -v aws >/dev/null 2>&1 || { log_error "AWS CLI is required but not installed. Aborting."; exit 1; }
     command -v docker >/dev/null 2>&1 || { log_error "Docker is required but not installed. Aborting."; exit 1; }
-    command -v python3 >/dev/null 2>&1 || { log_error "Python 3 is required but not installed. Aborting."; exit 1; }
+    command -v python3 >/dev/null 2>&1 || command -v /c/Users/mohsen/AppData/Local/Programs/Python/Python311/python.exe >/dev/null 2>&1 || { log_error "Python 3 is required but not installed. Aborting."; exit 1; }
     
     # Check AWS credentials
     if ! aws sts get-caller-identity >/dev/null 2>&1; then
@@ -58,21 +71,23 @@ deploy_infrastructure() {
     
     cd $TERRAFORM_DIR
     
+    # Use the terraform command determined in check_prerequisites
+    
     # Initialize Terraform
     log_info "Initializing Terraform..."
-    terraform init
+    $TERRAFORM_CMD init
     
     # Plan deployment
     log_info "Planning Terraform deployment..."
-    terraform plan -var="environment=$ENVIRONMENT" -var="aws_region=$AWS_REGION" -out=tfplan
+    $TERRAFORM_CMD plan -var="environment=$ENVIRONMENT" -var="aws_region=$AWS_REGION" -out=tfplan
     
     # Apply deployment
     log_info "Applying Terraform deployment..."
-    terraform apply tfplan
+    $TERRAFORM_CMD apply tfplan
     
     # Get outputs
     log_info "Getting Terraform outputs..."
-    terraform output -json > outputs.json
+    $TERRAFORM_CMD output -json > outputs.json
     
     log_success "Infrastructure deployed successfully"
     cd - > /dev/null
@@ -81,20 +96,55 @@ deploy_infrastructure() {
 build_application() {
     log_info "Building application components..."
     
-    # Build frontend Docker image
-    log_info "Building frontend Docker image..."
+    # Get ECR repository URI from Terraform outputs
+    if [ ! -f "$TERRAFORM_DIR/outputs.json" ]; then
+        log_error "Infrastructure outputs not found. Please deploy infrastructure first."
+        exit 1
+    fi
+    
+    ECR_REPOSITORY_URI=$(jq -r '.ecr_repository_uri.value' $TERRAFORM_DIR/outputs.json 2>/dev/null || echo "")
+    if [ -z "$ECR_REPOSITORY_URI" ] || [ "$ECR_REPOSITORY_URI" = "null" ]; then
+        # Fallback to constructing the URI
+        AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        AWS_REGION=$(aws configure get region)
+        ECR_REPOSITORY_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/rag-chatbot-prod-frontend"
+    fi
+    
+    # Build and push frontend Docker image to ECR
+    log_info "Building and pushing frontend Docker image to ECR..."
     cd $APPLICATION_DIR/frontend
+    
+    # Login to ECR
+    log_info "Logging in to ECR..."
+    aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin $ECR_REPOSITORY_URI
+    
+    # Build Docker image
     docker build -t rag-chatbot-frontend:latest .
+    
+    # Tag image for ECR
+    docker tag rag-chatbot-frontend:latest $ECR_REPOSITORY_URI:latest
+    
+    # Push image to ECR
+    log_info "Pushing image to ECR..."
+    docker push $ECR_REPOSITORY_URI:latest
+    
     cd - > /dev/null
     
     # Package Lambda function
     log_info "Packaging Lambda function..."
     cd $APPLICATION_DIR/backend
-    pip install -r requirements.txt -t .
+    
+    # Use Python 3.11 if available, otherwise use python3
+    if command -v /c/Users/mohsen/AppData/Local/Programs/Python/Python311/python.exe >/dev/null 2>&1; then
+        /c/Users/mohsen/AppData/Local/Programs/Python/Python311/python.exe -m pip install -r requirements.txt -t .
+    else
+        python3 -m pip install -r requirements.txt -t .
+    fi
+    
     zip -r lambda-deployment.zip .
     cd - > /dev/null
     
-    log_success "Application components built successfully"
+    log_success "Application components built and pushed successfully"
 }
 
 deploy_application() {

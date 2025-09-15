@@ -49,3 +49,13 @@ output "cloudwatch_log_group_name" {
   description = "Name of the CloudWatch log group"
   value       = aws_cloudwatch_log_group.ecs.name
 }
+
+output "ecr_repository_uri" {
+  description = "URI of the ECR repository for frontend"
+  value       = aws_ecr_repository.frontend.repository_url
+}
+
+output "ecr_repository_name" {
+  description = "Name of the ECR repository for frontend"
+  value       = aws_ecr_repository.frontend.name
+}

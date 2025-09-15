@@ -55,15 +55,20 @@ output "ecs_task_definition_arn" {
   value       = module.ecs.task_definition_arn
 }
 
-output "cloudfront_domain_name" {
-  description = "CloudFront distribution domain name"
-  value       = module.cloudfront.domain_name
+output "ecr_repository_uri" {
+  description = "URI of the ECR repository for frontend"
+  value       = module.ecs.ecr_repository_uri
 }
 
-output "cloudfront_distribution_id" {
-  description = "CloudFront distribution ID"
-  value       = module.cloudfront.distribution_id
-}
+# output "cloudfront_domain_name" {
+#   description = "CloudFront distribution domain name"
+#   value       = module.cloudfront.domain_name
+# }
+
+# output "cloudfront_distribution_id" {
+#   description = "CloudFront distribution ID"
+#   value       = module.cloudfront.distribution_id
+# }
 
 output "s3_bucket_name" {
   description = "Name of the S3 bucket for documents"
@@ -85,25 +90,27 @@ output "dynamodb_table_arn" {
   value       = module.dynamodb.chat_history_table_arn
 }
 
-output "opensearch_domain_endpoint" {
-  description = "OpenSearch domain endpoint"
-  value       = module.opensearch.domain_endpoint
-}
+# OpenSearch outputs commented out (requires AWS subscription)
+# output "opensearch_domain_endpoint" {
+#   description = "OpenSearch domain endpoint"
+#   value       = module.opensearch.domain_endpoint
+# }
 
-output "opensearch_domain_arn" {
-  description = "OpenSearch domain ARN"
-  value       = module.opensearch.domain_arn
-}
+# output "opensearch_domain_arn" {
+#   description = "OpenSearch domain ARN"
+#   value       = module.opensearch.domain_arn
+# }
 
-output "bedrock_knowledge_base_id" {
-  description = "Bedrock knowledge base ID"
-  value       = module.bedrock.knowledge_base_id
-}
+# Bedrock outputs commented out (module disabled)
+# output "bedrock_knowledge_base_id" {
+#   description = "Bedrock knowledge base ID"
+#   value       = module.bedrock.knowledge_base_id
+# }
 
-output "bedrock_knowledge_base_arn" {
-  description = "Bedrock knowledge base ARN"
-  value       = module.bedrock.knowledge_base_arn
-}
+# output "bedrock_knowledge_base_arn" {
+#   description = "Bedrock knowledge base ARN"
+#   value       = module.bedrock.knowledge_base_arn
+# }
 
 output "kms_key_id" {
   description = "KMS key ID for encryption"
@@ -125,15 +132,16 @@ output "cloudwatch_log_group_name" {
   value       = module.monitoring.log_group_name
 }
 
-output "security_hub_findings" {
-  description = "Security Hub findings"
-  value       = module.monitoring.security_hub_findings
-}
+# Security Hub output commented out (requires AWS subscription)
+# output "security_hub_arn" {
+#   description = "Security Hub ARN"
+#   value       = module.monitoring.security_hub_arn
+# }
 
-output "application_url" {
-  description = "URL to access the application"
-  value       = var.enable_cloudfront ? "https://${module.cloudfront.domain_name}" : module.api_gateway.api_gateway_url
-}
+# output "application_url" {
+#   description = "URL to access the application"
+#   value       = var.enable_cloudfront ? "https://${module.cloudfront.domain_name}" : module.api_gateway.api_gateway_url
+# }
 
 output "monitoring_dashboard_url" {
   description = "URL to the CloudWatch dashboard"

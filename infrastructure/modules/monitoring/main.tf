@@ -86,8 +86,6 @@ resource "aws_cloudwatch_dashboard" "main" {
       }
     ]
   })
-
-  tags = var.tags
 }
 
 # CloudWatch Alarms
@@ -197,7 +195,7 @@ resource "aws_sns_topic_policy" "alerts" {
 resource "aws_cloudwatch_log_group" "application" {
   name              = "/aws/application/${var.project_name}-${var.environment}"
   retention_in_days = var.log_retention_days
-  kms_key_id        = var.kms_key_id
+  # kms_key_id        = var.kms_key_id  # Removed to avoid dependency issues
 
   tags = var.tags
 }
@@ -221,51 +219,51 @@ resource "aws_cloudwatch_log_stream" "api_gateway" {
 }
 
 # Security Hub
-resource "aws_securityhub_account" "main" {
-  enable_default_standards = true
-}
+# resource "aws_securityhub_account" "main" {
+#   enable_default_standards = true
+# }
 
 # Security Hub Standards Subscription
-resource "aws_securityhub_standards_subscription" "cis" {
-  depends_on    = [aws_securityhub_account.main]
-  standards_arn = "arn:aws:securityhub:${data.aws_region.current.name}::standard/cis-aws-foundations-benchmark/v/1.2.0"
-}
+# resource "aws_securityhub_standards_subscription" "cis" {
+#   depends_on    = [aws_securityhub_account.main]
+#   standards_arn = "arn:aws:securityhub:${data.aws_region.current.name}::standard/cis-aws-foundations-benchmark/v/1.2.0"
+# }
 
-resource "aws_securityhub_standards_subscription" "pci" {
-  depends_on    = [aws_securityhub_account.main]
-  standards_arn = "arn:aws:securityhub:${data.aws_region.current.name}::standard/pci-dss/v/3.2.1"
-}
+# resource "aws_securityhub_standards_subscription" "pci" {
+#   depends_on    = [aws_securityhub_account.main]
+#   standards_arn = "arn:aws:securityhub:${data.aws_region.current.name}::standard/pci-dss/v/3.2.1"
+# }
 
-# GuardDuty
-resource "aws_guardduty_detector" "main" {
-  enable = true
+# GuardDuty - Commented out (requires AWS subscription)
+# resource "aws_guardduty_detector" "main" {
+#   enable = true
+# 
+#   datasources {
+#     s3_logs {
+#       enable = true
+#     }
+#     kubernetes {
+#       audit_logs {
+#         enable = true
+#       }
+#     }
+#     malware_protection {
+#       scan_ec2_instance_with_findings {
+#         ebs_volumes {
+#           enable = true
+#         }
+#       }
+#     }
+#   }
+# 
+#   tags = var.tags
+# }
 
-  datasources {
-    s3_logs {
-      enable = true
-    }
-    kubernetes {
-      audit_logs {
-        enable = true
-      }
-    }
-    malware_protection {
-      scan_ec2_instance_with_findings {
-        ebs_volumes {
-          enable = true
-        }
-      }
-    }
-  }
-
-  tags = var.tags
-}
-
-# Inspector
-resource "aws_inspector2_enabler" "main" {
-  account_ids   = [data.aws_caller_identity.current.account_id]
-  resource_types = ["EC2", "ECR", "LAMBDA"]
-}
+# Inspector - Commented out (requires AWS subscription)
+# resource "aws_inspector2_enabler" "main" {
+#   account_ids   = [data.aws_caller_identity.current.account_id]
+#   resource_types = ["EC2", "ECR", "LAMBDA"]
+# }
 
 # Data sources
 data "aws_caller_identity" "current" {}

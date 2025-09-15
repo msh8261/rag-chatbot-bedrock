@@ -15,8 +15,8 @@ variable "api_gateway_domain" {
   type        = string
 }
 
-variable "waf_web_acl_arn" {
-  description = "WAF Web ACL ARN"
+variable "waf_web_acl_id" {
+  description = "WAF Web ACL ID"
   type        = string
   default     = ""
 }

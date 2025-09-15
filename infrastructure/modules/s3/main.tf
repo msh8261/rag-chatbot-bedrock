@@ -97,6 +97,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "documents" {
     id     = "document_lifecycle"
     status = "Enabled"
 
+    filter {
+      prefix = ""
+    }
+
     expiration {
       days = 2555 # 7 years
     }
@@ -118,6 +122,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
   rule {
     id     = "log_lifecycle"
     status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
 
     expiration {
       days = 90

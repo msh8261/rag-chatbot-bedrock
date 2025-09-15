@@ -17,17 +17,6 @@ resource "aws_api_gateway_rest_api" "main" {
         Principal = "*"
         Action = "execute-api:Invoke"
         Resource = "*"
-      },
-      {
-        Effect = "Deny"
-        Principal = "*"
-        Action = "execute-api:Invoke"
-        Resource = "*"
-        Condition = {
-          StringNotEquals = {
-            "aws:SourceIp" = var.allowed_cidr_blocks
-          }
-        }
       }
     ]
   })
@@ -96,13 +85,19 @@ resource "aws_api_gateway_deployment" "main" {
   depends_on = [
     aws_api_gateway_method.chat_post,
     aws_api_gateway_integration.chat_post,
+    aws_api_gateway_rest_api.main,
   ]
 
   rest_api_id = aws_api_gateway_rest_api.main.id
-  stage_name  = var.environment
+  # Don't create stage in deployment - handle separately
 
   lifecycle {
     create_before_destroy = true
+  }
+
+  # Force deployment when policy changes
+  triggers = {
+    policy = aws_api_gateway_rest_api.main.policy
   }
 }
 
@@ -112,20 +107,25 @@ resource "aws_api_gateway_stage" "main" {
   rest_api_id   = aws_api_gateway_rest_api.main.id
   stage_name    = var.environment
 
-  access_log_settings {
-    destination_arn = aws_cloudwatch_log_group.api_gateway.arn
-    format = jsonencode({
-      requestId      = "$context.requestId"
-      ip             = "$context.identity.sourceIp"
-      caller         = "$context.identity.caller"
-      user           = "$context.identity.user"
-      requestTime    = "$context.requestTime"
-      httpMethod     = "$context.httpMethod"
-      resourcePath   = "$context.resourcePath"
-      status         = "$context.status"
-      protocol       = "$context.protocol"
-      responseLength = "$context.responseLength"
-    })
+  # access_log_settings {
+  #   destination_arn = aws_cloudwatch_log_group.api_gateway.arn
+  #   format = jsonencode({
+  #     requestId      = "$context.requestId"
+  #     ip             = "$context.identity.sourceIp"
+  #     caller         = "$context.identity.caller"
+  #     user           = "$context.identity.user"
+  #     requestTime    = "$context.requestTime"
+  #     httpMethod     = "$context.httpMethod"
+  #     resourcePath   = "$context.resourcePath"
+  #     status         = "$context.status"
+  #     protocol       = "$context.protocol"
+  #     responseLength = "$context.responseLength"
+  #   })
+  # }
+
+  lifecycle {
+    ignore_changes = [deployment_id]
+    create_before_destroy = true
   }
 
   tags = var.tags
@@ -135,7 +135,6 @@ resource "aws_api_gateway_stage" "main" {
 resource "aws_cloudwatch_log_group" "api_gateway" {
   name              = "/aws/apigateway/${var.project_name}-${var.environment}"
   retention_in_days = var.log_retention_days
-  kms_key_id        = var.kms_key_id
 
   tags = var.tags
 }
@@ -177,15 +176,10 @@ resource "aws_api_gateway_usage_plan_key" "main" {
   usage_plan_id = aws_api_gateway_usage_plan.main.id
 }
 
-# WAF Web ACL Association
-resource "aws_api_gateway_stage" "waf" {
-  count = var.enable_waf ? 1 : 0
+# WAF Web ACL Association (if enabled)
+resource "aws_wafv2_web_acl_association" "api_gateway" {
+  count = var.enable_waf && var.waf_web_acl_arn != "" ? 1 : 0
   
-  deployment_id = aws_api_gateway_deployment.main.id
-  rest_api_id   = aws_api_gateway_rest_api.main.id
-  stage_name    = var.environment
-
-  web_acl_arn = var.waf_web_acl_arn
-
-  tags = var.tags
+  resource_arn = aws_api_gateway_stage.main.arn
+  web_acl_arn  = var.waf_web_acl_arn
 }

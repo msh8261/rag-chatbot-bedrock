@@ -170,6 +170,14 @@ resource "aws_iam_policy" "lambda_bedrock_policy" {
           "kms:DescribeKey"
         ]
         Resource = "arn:aws:kms:${data.aws_region.current.name}:${var.account_id}:key/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = "arn:aws:sqs:${data.aws_region.current.name}:${var.account_id}:${var.project_name}-${var.environment}-*"
       }
     ]
   })

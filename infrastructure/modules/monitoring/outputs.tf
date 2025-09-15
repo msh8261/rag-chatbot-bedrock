@@ -15,20 +15,20 @@ output "log_group_name" {
   value       = aws_cloudwatch_log_group.application.name
 }
 
-output "security_hub_arn" {
-  description = "ARN of the Security Hub"
-  value       = aws_securityhub_account.main.arn
-}
+# Security services outputs commented out (require AWS subscription)
+# output "security_hub_arn" {
+#   description = "ARN of the Security Hub"
+#   value       = aws_securityhub_account.main.arn
+# }
 
-output "guardduty_detector_id" {
-  description = "ID of the GuardDuty detector"
-  value       = aws_guardduty_detector.main.id
-}
+# output "guardduty_detector_id" {
+#   description = "ID of the GuardDuty detector"
+#   value       = aws_guardduty_detector.main.id
+# }
 
-output "inspector_enabled" {
-  description = "Whether Inspector is enabled"
-  value       = aws_inspector2_enabler.main.account_ids
-}
+# output "inspector_enabled" {
+#   description = "Whether Inspector is enabled"
+#   value       = aws_inspector2_enabler.main.account_ids
+# }
 
-# Data source for current region
-data "aws_region" "current" {}
+# Data source for current region is already defined in main.tf

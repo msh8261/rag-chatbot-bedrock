@@ -73,19 +73,19 @@ resource "aws_cloudfront_distribution" "main" {
     cloudfront_default_certificate = true
   }
 
-  web_acl_id = var.waf_web_acl_arn
+  web_acl_id = var.waf_web_acl_id
 
   tags = var.tags
 }
 
-# CloudFront Origin Access Control
-resource "aws_cloudfront_origin_access_control" "main" {
-  name                              = "${var.project_name}-${var.environment}-oac"
-  description                       = "OAC for RAG Chatbot"
-  origin_access_control_origin_type = "api-gateway"
-  signing_behavior                  = "always"
-  signing_protocol                  = "sigv4"
-}
+# CloudFront Origin Access Control (not needed for API Gateway)
+# resource "aws_cloudfront_origin_access_control" "main" {
+#   name                              = "${var.project_name}-${var.environment}-oac"
+#   description                       = "OAC for RAG Chatbot"
+#   origin_access_control_origin_type = "api-gateway"
+#   signing_behavior                  = "always"
+#   signing_protocol                  = "sigv4"
+# }
 
 # CloudFront Cache Policy
 resource "aws_cloudfront_cache_policy" "main" {
@@ -141,21 +141,12 @@ resource "aws_cloudfront_response_headers_policy" "main" {
     }
   }
 
-  custom_headers_config {
-    items {
-      header   = "X-Content-Type-Options"
-      value    = "nosniff"
-      override = false
-    }
-    items {
-      header   = "X-Frame-Options"
-      value    = "DENY"
-      override = false
-    }
-    items {
-      header   = "X-XSS-Protection"
-      value    = "1; mode=block"
-      override = false
-    }
-  }
+  # Custom headers removed - X-Frame-Options is a security header
+  # custom_headers_config {
+  #   items {
+  #     header   = "X-Frame-Options"
+  #     value    = "DENY"
+  #     override = false
+  #   }
+  # }
 }

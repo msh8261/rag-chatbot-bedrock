@@ -1,3 +1,9 @@
+"""
+RAG Chatbot Lambda Function
+Copyright (c) 2025 RAG Chatbot Project
+Licensed under the MIT License
+"""
+
 import json
 import boto3
 import os
@@ -6,10 +12,16 @@ from datetime import datetime
 from typing import Dict, Any, List
 import uuid
 import re
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load .env file for local development (if exists)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not available, environment variables set by Terraform
+
+# Environment variables are set by Terraform in production
+# For local development, use: python scripts/get-api-url.py
 
 # Configure logging
 logger = logging.getLogger()

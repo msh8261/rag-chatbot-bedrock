@@ -1,0 +1,147 @@
+{
+  "api_gateway_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "2jeyo0m7q1"
+  },
+  "api_gateway_url": {
+    "sensitive": false,
+    "type": "string",
+    "value": "https://2jeyo0m7q1.execute-api.ap-southeast-1.amazonaws.com/prod"
+  },
+  "cloudwatch_log_group_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "/aws/application/rag-chatbot-prod"
+  },
+  "dynamodb_table_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:dynamodb:ap-southeast-1:396239172241:table/rag-chatbot-prod-chat-history"
+  },
+  "dynamodb_table_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "rag-chatbot-prod-chat-history"
+  },
+  "ecr_repository_uri": {
+    "sensitive": false,
+    "type": "string",
+    "value": "396239172241.dkr.ecr.ap-southeast-1.amazonaws.com/rag-chatbot-prod-frontend"
+  },
+  "ecs_cluster_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "rag-chatbot-prod-cluster"
+  },
+  "ecs_service_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "rag-chatbot-prod-service"
+  },
+  "ecs_task_definition_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:ecs:ap-southeast-1:396239172241:task-definition/rag-chatbot-prod-task:4"
+  },
+  "kms_key_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:kms:ap-southeast-1:396239172241:key/7351ad08-c55e-4169-8440-95daf48c49af"
+  },
+  "kms_key_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "7351ad08-c55e-4169-8440-95daf48c49af"
+  },
+  "lambda_function_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:lambda:ap-southeast-1:396239172241:function:rag-chatbot-prod-rag-chatbot"
+  },
+  "lambda_function_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "rag-chatbot-prod-rag-chatbot"
+  },
+  "monitoring_dashboard_url": {
+    "sensitive": false,
+    "type": "string",
+    "value": "https://ap-southeast-1.console.aws.amazon.com/cloudwatch/home?region=ap-southeast-1#dashboards:name=rag-chatbot-prod-dashboard"
+  },
+  "private_subnet_ids": {
+    "sensitive": false,
+    "type": [
+      "tuple",
+      [
+        "string",
+        "string"
+      ]
+    ],
+    "value": [
+      "subnet-039f81378c97714ec",
+      "subnet-0ed90a69ccbb849bf"
+    ]
+  },
+  "public_subnet_ids": {
+    "sensitive": false,
+    "type": [
+      "tuple",
+      [
+        "string",
+        "string"
+      ]
+    ],
+    "value": [
+      "subnet-022f79263cf6c4c63",
+      "subnet-000b825a859488d15"
+    ]
+  },
+  "s3_bucket_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:s3:::rag-chatbot-prod-documents-5b7krbto"
+  },
+  "s3_bucket_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "rag-chatbot-prod-documents-5b7krbto"
+  },
+  "security_summary": {
+    "sensitive": false,
+    "type": [
+      "object",
+      {
+        "encryption_enabled": "bool",
+        "guardrails_enabled": "bool",
+        "monitoring_enabled": "bool",
+        "private_subnets": "bool",
+        "vpc_endpoints": "bool",
+        "waf_enabled": "bool"
+      }
+    ],
+    "value": {
+      "encryption_enabled": true,
+      "guardrails_enabled": true,
+      "monitoring_enabled": true,
+      "private_subnets": true,
+      "vpc_endpoints": true,
+      "waf_enabled": true
+    }
+  },
+  "vpc_cidr_block": {
+    "sensitive": false,
+    "type": "string",
+    "value": "10.0.0.0/16"
+  },
+  "vpc_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "vpc-0fc90dbfd54a2a529"
+  },
+  "waf_web_acl_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:wafv2:ap-southeast-1:396239172241:regional/webacl/rag-chatbot-prod-waf/7c00f4d7-9af5-4e40-bcd6-c9364385729c"
+  }
+}

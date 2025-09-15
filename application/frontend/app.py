@@ -1,13 +1,25 @@
+"""
+RAG Chatbot Frontend Application
+Copyright (c) 2025 RAG Chatbot Project
+Licensed under the MIT License
+"""
+
 import streamlit as st
 import requests
 import json
 import uuid
 from datetime import datetime
 import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load .env file for local development (if exists)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not available, environment variables set by ECS
+
+# Environment variables are set by ECS task definition in production
+# For local development, use: python scripts/get-api-url.py
 
 # Page configuration
 st.set_page_config(
@@ -66,8 +78,8 @@ if "user_id" not in st.session_state:
     st.session_state.user_id = "anonymous"
 
 # Configuration
-API_GATEWAY_URL = os.getenv("API_GATEWAY_URL", "https://your-api-gateway-url.execute-api.region.amazonaws.com/prod")
-ENVIRONMENT = os.getenv("ENVIRONMENT", "prod")
+API_GATEWAY_URL = os.environ.get("API_GATEWAY_URL", "https://your-api-gateway-url.execute-api.region.amazonaws.com/prod")
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "prod")
 
 def send_message(message):
     """Send message to the API Gateway"""

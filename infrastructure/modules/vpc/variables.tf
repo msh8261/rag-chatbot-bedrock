@@ -58,3 +58,47 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# VPC Configuration
+variable "enable_dns_hostnames" {
+  description = "Enable DNS hostnames in VPC"
+  type        = bool
+  default     = true
+}
+
+variable "enable_dns_support" {
+  description = "Enable DNS support in VPC"
+  type        = bool
+  default     = true
+}
+
+variable "enable_nat_gateway" {
+  description = "Enable NAT Gateway for private subnets"
+  type        = bool
+  default     = true
+}
+
+variable "enable_vpc_endpoints" {
+  description = "Enable VPC endpoints for AWS services"
+  type        = bool
+  default     = true
+}
+
+variable "vpc_endpoint_security_group_ids" {
+  description = "Security group IDs for VPC endpoints"
+  type        = list(string)
+  default     = []
+}
+
+# Route Configuration
+variable "public_route_cidr" {
+  description = "CIDR block for public route to internet gateway"
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
+variable "private_route_cidr" {
+  description = "CIDR block for private route to NAT gateway"
+  type        = string
+  default     = "0.0.0.0/0"
+}

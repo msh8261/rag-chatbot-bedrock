@@ -2,8 +2,8 @@
 
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+  enable_dns_hostnames = var.enable_dns_hostnames
+  enable_dns_support   = var.enable_dns_support
 
   tags = merge(var.tags, {
     Name = "${var.project_name}-${var.environment}-vpc"
@@ -93,7 +93,7 @@ resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block = "0.0.0.0/0"
+    cidr_block = var.public_route_cidr
     gateway_id = aws_internet_gateway.main.id
   }
 
@@ -109,7 +109,7 @@ resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block     = "0.0.0.0/0"
+    cidr_block     = var.private_route_cidr
     nat_gateway_id = aws_nat_gateway.main[count.index].id
   }
 
@@ -200,18 +200,19 @@ resource "aws_vpc_endpoint" "lambda" {
   })
 }
 
-resource "aws_vpc_endpoint" "opensearch" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${data.aws_region.current.name}.es"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [var.opensearch_security_group_id]
-  private_dns_enabled = true
-
-  tags = merge(var.tags, {
-    Name = "${var.project_name}-${var.environment}-opensearch-endpoint"
-  })
-}
+# OpenSearch VPC Endpoint - Commented out (service may not be available in all regions)
+# resource "aws_vpc_endpoint" "opensearch" {
+#   vpc_id              = aws_vpc.main.id
+#   service_name        = "com.amazonaws.${data.aws_region.current.name}.es"
+#   vpc_endpoint_type   = "Interface"
+#   subnet_ids          = aws_subnet.private[*].id
+#   security_group_ids  = [var.opensearch_security_group_id]
+#   private_dns_enabled = true
+# 
+#   tags = merge(var.tags, {
+#     Name = "${var.project_name}-${var.environment}-opensearch-endpoint"
+#   })
+# }
 
 # Data source for current region
 data "aws_region" "current" {}

@@ -3,7 +3,7 @@
 variable "aws_region" {
   description = "AWS region for resources"
   type        = string
-  default     = "us-east-1"
+  default     = "ap-southeast-1"
 }
 
 variable "project_name" {
@@ -120,6 +120,39 @@ variable "enable_encryption" {
   default     = true
 }
 
+
+# VPC Configuration
+variable "vpc_cidr" {
+  description = "CIDR block for VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "public_subnet_cidrs" {
+  description = "CIDR blocks for public subnets"
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
+}
+
+variable "private_subnet_cidrs" {
+  description = "CIDR blocks for private subnets"
+  type        = list(string)
+  default     = ["10.0.10.0/24", "10.0.20.0/24"]
+}
+
+variable "database_subnet_cidrs" {
+  description = "CIDR blocks for database subnets"
+  type        = list(string)
+  default     = ["10.0.30.0/24", "10.0.40.0/24"]
+}
+
+variable "availability_zones_count" {
+  description = "Number of availability zones to use"
+  type        = number
+  default     = 2
+}
+
+# Security Configuration
 variable "enable_private_subnets" {
   description = "Use private subnets for application components"
   type        = bool
@@ -138,6 +171,7 @@ variable "enable_guardrails" {
   default     = true
 }
 
+# Application Configuration
 variable "max_concurrent_requests" {
   description = "Maximum concurrent requests for API Gateway"
   type        = number
@@ -154,4 +188,65 @@ variable "burst_limit" {
   description = "API Gateway burst limit"
   type        = number
   default     = 200
+}
+
+# Lambda Configuration
+variable "lambda_function_filename" {
+  description = "Lambda function filename (without .py extension)"
+  type        = string
+  default     = "lambda_function"
+}
+
+# Note: Terraform version and provider version cannot be variables
+# They must be hardcoded in the terraform block
+
+# Default Tags Configuration
+variable "managed_by" {
+  description = "Value for ManagedBy tag"
+  type        = string
+  default     = "Terraform"
+}
+
+variable "security_level" {
+  description = "Security level for default tags"
+  type        = string
+  default     = "High"
+}
+
+# Availability Zones Configuration
+variable "availability_zones_state" {
+  description = "State filter for availability zones"
+  type        = string
+  default     = "available"
+}
+
+# VPC Configuration
+variable "enable_dns_hostnames" {
+  description = "Enable DNS hostnames in VPC"
+  type        = bool
+  default     = true
+}
+
+variable "enable_dns_support" {
+  description = "Enable DNS support in VPC"
+  type        = bool
+  default     = true
+}
+
+variable "enable_nat_gateway" {
+  description = "Enable NAT Gateway for private subnets"
+  type        = bool
+  default     = true
+}
+
+variable "public_route_cidr" {
+  description = "CIDR block for public route to internet gateway"
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
+variable "private_route_cidr" {
+  description = "CIDR block for private route to NAT gateway"
+  type        = string
+  default     = "0.0.0.0/0"
 }
