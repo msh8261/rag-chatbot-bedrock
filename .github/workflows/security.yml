@@ -29,7 +29,7 @@ jobs:
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
@@ -128,7 +128,7 @@ jobs:
         output: 'container-scan-results.sarif'
 
     - name: Upload container scan results
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'container-scan-results.sarif'
@@ -159,7 +159,7 @@ jobs:
         safety check --json --output safety-results.json
 
     - name: Upload safety results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: safety-results
         path: safety-results.json
