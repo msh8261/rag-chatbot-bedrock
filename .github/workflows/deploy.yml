@@ -1,0 +1,120 @@
+name: Deploy RAG Chatbot
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  terraform-deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+        
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-southeast-1
+        
+    - name: Terraform Init
+      run: |
+        cd infrastructure/terraform
+        terraform init
+        
+    - name: Terraform Plan
+      run: |
+        cd infrastructure/terraform
+        terraform plan -out=tfplan
+        
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main'
+      run: |
+        cd infrastructure/terraform
+        terraform apply -auto-approve
+        
+    - name: Get outputs
+      run: |
+        cd infrastructure/terraform
+        terraform output -json > terraform-outputs.json
+        
+    - name: Upload Terraform outputs
+      uses: actions/upload-artifact@v4
+      with:
+        name: terraform-outputs
+        path: infrastructure/terraform/terraform-outputs.json
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: terraform-deploy
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-southeast-1
+        
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      
+    - name: Build and push Docker image
+      run: |
+        cd application/frontend
+        docker build -t rag-chatbot-prod-frontend .
+        docker tag rag-chatbot-prod-frontend:latest 396239172241.dkr.ecr.ap-southeast-1.amazonaws.com/rag-chatbot-prod-frontend:latest
+        docker push 396239172241.dkr.ecr.ap-southeast-1.amazonaws.com/rag-chatbot-prod-frontend:latest
+        
+    - name: Update ECS service
+      run: |
+        aws ecs update-service --cluster rag-chatbot-prod-cluster --service rag-chatbot-prod-service --force-new-deployment --region ap-southeast-1
+
+  test-deployment:
+    runs-on: ubuntu-latest
+    needs: [terraform-deploy, build-frontend]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-southeast-1
+        
+    - name: Test API Gateway
+      run: |
+        API_URL="https://nwt110d4l2.execute-api.ap-southeast-1.amazonaws.com/prod"
+        echo "Testing API Gateway at: $API_URL"
+        
+        # Test health endpoint
+        curl -f "$API_URL/health" || echo "Health check failed"
+        
+        # Test Lambda function
+        curl -f "$API_URL/chat" -X POST -H "Content-Type: application/json" -d '{"message":"test"}' || echo "Chat endpoint test failed"
+        
+    - name: Check ECS service status
+      run: |
+        aws ecs describe-services --cluster rag-chatbot-prod-cluster --services rag-chatbot-prod-service --region ap-southeast-1 --query 'services[0].{Status:status,RunningCount:runningCount,DesiredCount:desiredCount}'

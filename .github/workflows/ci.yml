@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r application/frontend/requirements.txt
+        pip install -r infrastructure/modules/lambda/requirements.txt
+        
+    - name: Lint Python code
+      run: |
+        pip install flake8
+        flake8 application/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 application/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        
+    - name: Test Python imports
+      run: |
+        python -c "import sys; sys.path.append('application/backend'); import lambda_function"
+        python -c "import sys; sys.path.append('application/frontend'); import app"
+        
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+        
+    - name: Terraform Format Check
+      run: |
+        cd infrastructure/terraform
+        terraform fmt -check -recursive
+        
+    - name: Terraform Init
+      run: |
+        cd infrastructure/terraform
+        terraform init -backend=false
+        
+    - name: Terraform Validate
+      run: |
+        cd infrastructure/terraform
+        terraform validate
+        
+    - name: Terraform Plan
+      run: |
+        cd infrastructure/terraform
+        terraform plan -out=tfplan

@@ -10,6 +10,8 @@ import json
 import uuid
 from datetime import datetime
 import os
+import base64
+import mimetypes
 
 # Load .env file for local development (if exists)
 try:
@@ -83,6 +85,14 @@ ENVIRONMENT = os.environ.get("ENVIRONMENT", "prod")
 
 def send_message(message):
     """Send message to the API Gateway"""
+    # Check if we're in demo mode
+    if "demo" in API_GATEWAY_URL.lower() or ENVIRONMENT == "demo":
+        return {
+            "response": f"🤖 Demo Mode: I received your message '{message}'. In the full version, I would search through your uploaded documents and provide AI-powered responses using Amazon Bedrock and OpenSearch. To enable full functionality, deploy the backend infrastructure with 'terraform apply'.",
+            "session_id": st.session_state.session_id,
+            "timestamp": datetime.now().isoformat()
+        }
+    
     try:
         response = requests.post(
             f"{API_GATEWAY_URL}/chat",
@@ -103,6 +113,66 @@ def send_message(message):
     except requests.exceptions.RequestException as e:
         st.error(f"Connection error: {str(e)}")
         return None
+
+def upload_document(file, filename):
+    """Upload document to the API Gateway"""
+    # Check if we're in demo mode
+    if "demo" in API_GATEWAY_URL.lower() or ENVIRONMENT == "demo":
+        return {
+            "success": True,
+            "document_id": f"demo_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "filename": filename,
+            "size": len(file.getvalue()),
+            "s3_key": f"demo/documents/{filename}",
+            "timestamp": datetime.now().isoformat(),
+            "demo_message": "Demo Mode: Document would be uploaded to S3 and indexed in OpenSearch in the full version."
+        }
+    
+    try:
+        # Encode file to base64
+        file_content = base64.b64encode(file.read()).decode('utf-8')
+        
+        # Get file MIME type
+        mime_type, _ = mimetypes.guess_type(filename)
+        if not mime_type:
+            mime_type = 'application/octet-stream'
+        
+        response = requests.post(
+            f"{API_GATEWAY_URL}/upload",
+            json={
+                "filename": filename,
+                "file_content": file_content,
+                "mime_type": mime_type,
+                "session_id": st.session_state.session_id,
+                "user_id": st.session_state.user_id
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=60
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            st.error(f"Upload Error: {response.status_code} - {response.text}")
+            return None
+    except requests.exceptions.RequestException as e:
+        st.error(f"Upload connection error: {str(e)}")
+        return None
+
+def validate_file(file):
+    """Validate uploaded file"""
+    # Check file size (max 10MB)
+    max_size = 10 * 1024 * 1024  # 10MB
+    if len(file.getvalue()) > max_size:
+        return False, "File size exceeds 10MB limit"
+    
+    # Check file extension
+    allowed_extensions = ['.pdf', '.txt', '.docx', '.doc', '.md', '.rtf']
+    file_extension = os.path.splitext(file.name)[1].lower()
+    if file_extension not in allowed_extensions:
+        return False, f"File type {file_extension} not supported. Allowed: {', '.join(allowed_extensions)}"
+    
+    return True, "File is valid"
 
 def display_security_features():
     """Display security features in sidebar"""
@@ -130,6 +200,10 @@ def main():
     # Header
     st.markdown('<h1 class="main-header">🤖 Secure RAG Chatbot</h1>', unsafe_allow_html=True)
     
+    # Demo mode indicator
+    if "demo" in API_GATEWAY_URL.lower() or ENVIRONMENT == "demo":
+        st.info("🎭 **Demo Mode**: This is a preview of the RAG Chatbot interface. Upload and chat features are simulated. Deploy the backend with 'terraform apply' for full functionality.")
+    
     # Sidebar
     with st.sidebar:
         st.markdown("### 📊 Session Info")
@@ -147,6 +221,45 @@ def main():
         if st.button("🗑️ Clear Chat", type="secondary"):
             st.session_state.messages = []
             st.rerun()
+    
+    # Document upload section
+    st.markdown("### 📄 Document Upload")
+    st.markdown("Upload documents to add them to the knowledge base for AI-powered responses.")
+    
+    # File uploader
+    uploaded_file = st.file_uploader(
+        "Choose a document to upload",
+        type=['pdf', 'txt', 'docx', 'doc', 'md', 'rtf'],
+        help="Supported formats: PDF, TXT, DOCX, DOC, MD, RTF (Max 10MB)"
+    )
+    
+    if uploaded_file is not None:
+        # Validate file
+        is_valid, validation_message = validate_file(uploaded_file)
+        
+        if is_valid:
+            col1, col2, col3 = st.columns([2, 1, 1])
+            
+            with col1:
+                st.success(f"✅ {uploaded_file.name} ({len(uploaded_file.getvalue())} bytes)")
+            
+            with col2:
+                if st.button("📤 Upload Document", type="primary"):
+                    with st.spinner("Uploading document..."):
+                        result = upload_document(uploaded_file, uploaded_file.name)
+                        if result and "success" in result:
+                            st.success("✅ Document uploaded successfully!")
+                            st.info(f"Document ID: {result.get('document_id', 'N/A')}")
+                        else:
+                            st.error("❌ Failed to upload document")
+            
+            with col3:
+                if st.button("❌ Cancel", type="secondary"):
+                    st.rerun()
+        else:
+            st.error(f"❌ {validation_message}")
+    
+    st.markdown("---")
     
     # Main chat interface
     col1, col2 = st.columns([4, 1])
