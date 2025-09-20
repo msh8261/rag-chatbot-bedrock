@@ -1,0 +1,12 @@
+{
+  "httpMethod": "POST",
+  "path": "/prod/chat",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": "{\"message\":\"hello\",\"session_id\":\"test\",\"user_id\":\"test\"}",
+  "requestContext": {
+    "httpMethod": "POST",
+    "path": "/prod/chat"
+  }
+}

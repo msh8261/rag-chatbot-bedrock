@@ -4,7 +4,7 @@
 # Basic Configuration
 project_name = "rag-chatbot"
 environment  = "prod"
-aws_region   = "ap-southeast-1"
+aws_region   = "us-east-1"
 
 # Domain Configuration (optional - leave empty for ALB-only deployment)
 domain_name     = ""

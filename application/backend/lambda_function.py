@@ -47,19 +47,41 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Main Lambda handler for RAG chatbot
     """
     try:
+        # Log the incoming event for debugging
+        logger.info(f"Received event: {json.dumps(event)}")
+        
         # Get HTTP method and path
         http_method = event.get('httpMethod', 'POST')
         path = event.get('path', '/')
         
-        # Route to appropriate handler
-        if http_method == 'POST' and path == '/chat':
-            return handle_chat_request(event)
-        elif http_method == 'POST' and path == '/upload':
-            return handle_upload_request(event)
-        elif http_method == 'OPTIONS':
+        # Handle API Gateway proxy integration
+        if 'requestContext' in event:
+            if 'http' in event['requestContext']:
+                # API Gateway v2 event structure
+                http_method = event['requestContext']['http']['method']
+                path = event['requestContext']['http']['path']
+            elif 'httpMethod' in event['requestContext']:
+                # API Gateway v1 event structure
+                http_method = event['requestContext']['httpMethod']
+                path = event['requestContext']['path']
+        
+        logger.info(f"HTTP Method: {http_method}, Path: {path}")
+        
+        # Route to appropriate handler - handle both direct and API Gateway paths
+        if http_method == 'POST':
+            if path in ['/chat', '/prod/chat', '/']:
+                logger.info("Routing to chat handler")
+                return handle_chat_request(event)
+            elif path in ['/upload', '/prod/upload']:
+                logger.info("Routing to upload handler")
+                return handle_upload_request(event)
+        
+        if http_method == 'OPTIONS':
+            logger.info("Handling OPTIONS request")
             return create_response(200, {'message': 'OK'})
-        else:
-            return create_response(404, {'error': 'Not found'})
+        
+        logger.warning(f"No handler found for {http_method} {path}")
+        return create_response(404, {'error': 'Not found'})
             
     except Exception as e:
         logger.error(f"Error in lambda_handler: {str(e)}")
