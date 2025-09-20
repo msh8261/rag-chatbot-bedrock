@@ -24,14 +24,21 @@ resource "aws_api_gateway_rest_api" "main" {
   tags = var.tags
 }
 
-# API Gateway Resource
+# API Gateway Resource - Chat
 resource "aws_api_gateway_resource" "chat" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_rest_api.main.root_resource_id
   path_part   = "chat"
 }
 
-# API Gateway Method
+# API Gateway Resource - Upload
+resource "aws_api_gateway_resource" "upload" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_rest_api.main.root_resource_id
+  path_part   = "upload"
+}
+
+# API Gateway Method - Chat POST
 resource "aws_api_gateway_method" "chat_post" {
   rest_api_id   = aws_api_gateway_rest_api.main.id
   resource_id   = aws_api_gateway_resource.chat.id
@@ -43,7 +50,19 @@ resource "aws_api_gateway_method" "chat_post" {
   }
 }
 
-# API Gateway Method Response
+# API Gateway Method - Upload POST
+resource "aws_api_gateway_method" "upload_post" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.upload.id
+  http_method   = "POST"
+  authorization = "NONE"
+
+  request_parameters = {
+    "method.request.header.Content-Type" = true
+  }
+}
+
+# API Gateway Method Response - Chat
 resource "aws_api_gateway_method_response" "chat_post_200" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.chat.id
@@ -55,7 +74,19 @@ resource "aws_api_gateway_method_response" "chat_post_200" {
   }
 }
 
-# API Gateway Integration
+# API Gateway Method Response - Upload
+resource "aws_api_gateway_method_response" "upload_post_200" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.upload.id
+  http_method = aws_api_gateway_method.upload_post.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# API Gateway Integration - Chat
 resource "aws_api_gateway_integration" "chat_post" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.chat.id
@@ -66,7 +97,18 @@ resource "aws_api_gateway_integration" "chat_post" {
   uri                    = var.lambda_invoke_arn
 }
 
-# API Gateway Integration Response
+# API Gateway Integration - Upload
+resource "aws_api_gateway_integration" "upload_post" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.upload.id
+  http_method = aws_api_gateway_method.upload_post.http_method
+
+  integration_http_method = "POST"
+  type                   = "AWS_PROXY"
+  uri                    = var.lambda_invoke_arn
+}
+
+# API Gateway Integration Response - Chat
 resource "aws_api_gateway_integration_response" "chat_post_200" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.chat.id
@@ -80,11 +122,27 @@ resource "aws_api_gateway_integration_response" "chat_post_200" {
   depends_on = [aws_api_gateway_integration.chat_post]
 }
 
+# API Gateway Integration Response - Upload
+resource "aws_api_gateway_integration_response" "upload_post_200" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.upload.id
+  http_method = aws_api_gateway_method.upload_post.http_method
+  status_code = aws_api_gateway_method_response.upload_post_200.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_integration.upload_post]
+}
+
 # API Gateway Deployment
 resource "aws_api_gateway_deployment" "main" {
   depends_on = [
     aws_api_gateway_method.chat_post,
     aws_api_gateway_integration.chat_post,
+    aws_api_gateway_method.upload_post,
+    aws_api_gateway_integration.upload_post,
     aws_api_gateway_rest_api.main,
   ]
 
@@ -177,9 +235,5 @@ resource "aws_api_gateway_usage_plan_key" "main" {
 }
 
 # WAF Web ACL Association (if enabled)
-resource "aws_wafv2_web_acl_association" "api_gateway" {
-  count = var.enable_waf && var.waf_web_acl_arn != "" ? 1 : 0
-  
-  resource_arn = aws_api_gateway_stage.main.arn
-  web_acl_arn  = var.waf_web_acl_arn
-}
+# Note: WAF association will be handled in the main configuration
+# after both API Gateway and WAF are created

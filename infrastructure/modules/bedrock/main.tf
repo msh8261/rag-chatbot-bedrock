@@ -38,12 +38,6 @@ resource "aws_bedrockagent_data_source" "main" {
     type = "S3"
     s3_configuration {
       bucket_arn = var.s3_bucket_arn
-      inclusion_filters {
-        filter_conditions {
-          condition = "PREFIX"
-          key       = "documents/"
-        }
-      }
     }
   }
 
@@ -56,46 +50,10 @@ resource "aws_bedrockagent_data_source" "main" {
       }
     }
   }
-
-  tags = var.tags
 }
 
-# Bedrock Guardrails
-resource "aws_bedrockguardrails_guardrail" "main" {
-  name        = "${var.project_name}-${var.environment}-guardrail"
-  description = "Guardrails for RAG chatbot"
-
-  content_policy_config {
-    filters_config {
-      input_storage_config {
-        type = "S3"
-        s3_config {
-          bucket_arn = var.s3_bucket_arn
-          key_prefix = "guardrails/"
-        }
-      }
-    }
-  }
-
-  word_policy_config {
-    words_config {
-      text = "inappropriate, harmful, offensive"
-    }
-    managed_word_lists_config {
-      type = "PROFANITY"
-    }
-  }
-
-  topic_policy_config {
-    topics_config {
-      name        = "restricted_topics"
-      definition  = "Topics that should be avoided in conversations"
-      examples    = ["sensitive information", "personal data"]
-    }
-  }
-
-  tags = var.tags
-}
+# Note: Bedrock Guardrails are not yet supported in the AWS provider
+# This will be implemented when the resource becomes available
 
 # Bedrock Model Invocation Logging
 resource "aws_bedrock_model_invocation_logging_configuration" "main" {

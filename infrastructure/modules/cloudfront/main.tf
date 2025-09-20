@@ -73,7 +73,7 @@ resource "aws_cloudfront_distribution" "main" {
     cloudfront_default_certificate = true
   }
 
-  web_acl_id = var.waf_web_acl_id
+  # web_acl_id = var.waf_web_acl_id  # Disabled due to access issues
 
   tags = var.tags
 }

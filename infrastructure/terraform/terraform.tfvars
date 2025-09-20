@@ -25,6 +25,25 @@ enable_encryption      = true
 enable_waf            = true
 enable_monitoring     = true
 
+# Advanced Security Services (require AWS subscriptions)
+enable_shield_advanced = false
+enable_guardduty = false
+enable_guardduty_s3_protection = true
+enable_guardduty_kubernetes_protection = false
+enable_guardduty_malware_protection = true
+enable_inspector = false
+enable_inspector_ec2 = true
+enable_inspector_ecr = true
+enable_inspector_lambda = true
+enable_inspector_auto_run = false
+enable_security_hub = false
+enable_security_hub_default_standards = true
+enable_security_hub_cis = true
+enable_security_hub_pci = false
+enable_security_hub_nist = true
+enable_security_hub_aggregation = false
+enable_security_lake = false
+
 # Application Configuration
 bedrock_model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
@@ -43,9 +62,9 @@ rate_limit  = 100
 burst_limit = 200
 max_concurrent_requests = 1000
 
-# OpenSearch Configuration (commented out - requires subscription)
-# opensearch_instance_type  = "t3.small.search"
-# opensearch_instance_count = 1
+# OpenSearch Configuration - Disabled due to subscription requirement
+opensearch_instance_type  = "t3.small.search"
+opensearch_instance_count = 0
 
 # CloudFront Configuration
 enable_cloudfront = false

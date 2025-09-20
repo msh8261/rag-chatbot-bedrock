@@ -17,15 +17,5 @@ output "data_source_id" {
 
 output "data_source_arn" {
   description = "ARN of the Bedrock data source"
-  value       = aws_bedrockagent_data_source.main.arn
-}
-
-output "guardrail_id" {
-  description = "ID of the Bedrock guardrail"
-  value       = aws_bedrockguardrails_guardrail.main.id
-}
-
-output "guardrail_arn" {
-  description = "ARN of the Bedrock guardrail"
-  value       = aws_bedrockguardrails_guardrail.main.arn
+  value       = aws_bedrockagent_data_source.main.id
 }

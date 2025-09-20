@@ -19,7 +19,7 @@ resource "aws_lambda_function" "main" {
   environment {
     variables = {
       DYNAMODB_TABLE_NAME    = var.dynamodb_table_name
-      OPENSEARCH_ENDPOINT    = var.opensearch_endpoint
+      OPENSEARCH_ENDPOINT    = var.opensearch_endpoint != null ? var.opensearch_endpoint : ""
       S3_BUCKET_NAME         = var.s3_bucket_name
       BEDROCK_MODEL_ID       = var.bedrock_model_id
       LOG_LEVEL              = var.log_level

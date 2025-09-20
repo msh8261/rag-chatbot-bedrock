@@ -213,6 +213,115 @@ variable "security_level" {
   default     = "High"
 }
 
+# Security Services Configuration
+variable "enable_shield_advanced" {
+  description = "Enable AWS Shield Advanced protection"
+  type        = bool
+  default     = false
+}
+
+variable "enable_guardduty" {
+  description = "Enable GuardDuty threat detection"
+  type        = bool
+  default     = false
+}
+
+variable "enable_guardduty_s3_protection" {
+  description = "Enable S3 protection in GuardDuty"
+  type        = bool
+  default     = true
+}
+
+variable "enable_guardduty_kubernetes_protection" {
+  description = "Enable Kubernetes protection in GuardDuty"
+  type        = bool
+  default     = false
+}
+
+variable "enable_guardduty_malware_protection" {
+  description = "Enable malware protection in GuardDuty"
+  type        = bool
+  default     = true
+}
+
+variable "enable_inspector" {
+  description = "Enable Amazon Inspector vulnerability assessment"
+  type        = bool
+  default     = false
+}
+
+variable "inspector_resource_types" {
+  description = "Resource types to enable for Inspector scanning"
+  type        = list(string)
+  default     = ["EC2", "ECR", "LAMBDA"]
+}
+
+variable "enable_inspector_ec2" {
+  description = "Enable EC2 scanning in Inspector"
+  type        = bool
+  default     = true
+}
+
+variable "enable_inspector_ecr" {
+  description = "Enable ECR scanning in Inspector"
+  type        = bool
+  default     = true
+}
+
+variable "enable_inspector_lambda" {
+  description = "Enable Lambda scanning in Inspector"
+  type        = bool
+  default     = true
+}
+
+variable "enable_inspector_auto_run" {
+  description = "Automatically run Inspector assessment"
+  type        = bool
+  default     = false
+}
+
+variable "enable_security_hub" {
+  description = "Enable AWS Security Hub"
+  type        = bool
+  default     = false
+}
+
+variable "enable_security_hub_default_standards" {
+  description = "Enable default security standards in Security Hub"
+  type        = bool
+  default     = true
+}
+
+variable "enable_security_hub_cis" {
+  description = "Enable CIS AWS Foundations Benchmark in Security Hub"
+  type        = bool
+  default     = true
+}
+
+variable "enable_security_hub_pci" {
+  description = "Enable PCI DSS standard in Security Hub"
+  type        = bool
+  default     = false
+}
+
+variable "enable_security_hub_nist" {
+  description = "Enable NIST Cybersecurity Framework in Security Hub"
+  type        = bool
+  default     = true
+}
+
+variable "enable_security_hub_aggregation" {
+  description = "Enable finding aggregation across regions in Security Hub"
+  type        = bool
+  default     = false
+}
+
+variable "enable_security_lake" {
+  description = "Enable AWS Security Lake"
+  type        = bool
+  default     = false
+}
+
 # Availability Zones Configuration
 variable "availability_zones_state" {
   description = "State filter for availability zones"

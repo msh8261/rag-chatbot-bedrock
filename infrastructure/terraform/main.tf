@@ -127,19 +127,22 @@ module "dynamodb" {
   tags = local.common_tags
 }
 
-# OpenSearch Module (commented out - requires AWS subscription)
-# module "opensearch" {
-#   source = "../modules/opensearch"
-#   
-#   project_name = var.project_name
-#   environment  = var.environment
-#   vpc_id       = module.vpc.vpc_id
-#   private_subnet_ids = module.vpc.private_subnet_ids
-#   security_group_id  = module.security_groups.opensearch_security_group_id
-#   kms_key_id   = module.kms.kms_key_id
-#   
-#   tags = local.common_tags
-# }
+# OpenSearch Module
+module "opensearch" {
+  source = "../modules/opensearch"
+  
+  project_name = var.project_name
+  environment  = var.environment
+  vpc_id       = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+  security_group_id  = module.security_groups.opensearch_security_group_id
+  kms_key_id   = module.kms.kms_key_id
+  instance_type = var.opensearch_instance_type
+  instance_count = var.opensearch_instance_count
+  log_retention_days = var.log_retention_days
+  
+  tags = local.common_tags
+}
 
 # Lambda Module
 module "lambda" {
@@ -153,7 +156,7 @@ module "lambda" {
   lambda_role_arn = module.iam.lambda_role_arn
   lambda_role_name = module.iam.lambda_role_name
   dynamodb_table_name = module.dynamodb.chat_history_table_name
-  # opensearch_endpoint = module.opensearch.domain_endpoint  # Commented out (requires subscription)
+  opensearch_endpoint = module.opensearch.domain_endpoint
   s3_bucket_name = module.s3.documents_bucket_name
   kms_key_id   = module.kms.kms_key_id
   api_gateway_execution_arn = module.api_gateway.api_gateway_execution_arn
@@ -219,17 +222,17 @@ module "ecs" {
   tags = local.common_tags
 }
 
-# CloudFront Module (temporarily commented out for testing)
-# module "cloudfront" {
-#   source = "../modules/cloudfront"
-#   
-#   project_name = var.project_name
-#   environment  = var.environment
-#   api_gateway_domain = module.api_gateway.api_gateway_domain
-#   waf_web_acl_id = module.waf.web_acl_id
-#   
-#   tags = local.common_tags
-# }
+# CloudFront Module
+module "cloudfront" {
+  source = "../modules/cloudfront"
+  
+  project_name = var.project_name
+  environment  = var.environment
+  api_gateway_domain = module.api_gateway.api_gateway_domain
+  waf_web_acl_id = module.waf.web_acl_id
+  
+  tags = local.common_tags
+}
 
 # WAF Module
 module "waf" {
@@ -259,16 +262,98 @@ module "monitoring" {
   tags = local.common_tags
 }
 
-# Bedrock Module - Commented out for now (requires OpenSearch Serverless)
-# module "bedrock" {
-#   source = "../modules/bedrock"
-#   
-#   project_name = var.project_name
-#   environment  = var.environment
-#   bedrock_knowledge_base_role_arn = module.iam.bedrock_knowledge_base_role_arn
-#   opensearch_collection_arn = module.opensearch.collection_arn
-#   s3_bucket_arn = module.s3.documents_bucket_arn
-#   s3_bucket_name = module.s3.documents_bucket_name
-#   
-#   tags = local.common_tags
-# }
+# AWS Shield Module
+module "shield" {
+  source = "../modules/shield"
+  
+  project_name = var.project_name
+  environment  = var.environment
+  enable_shield_advanced = var.enable_shield_advanced
+  resource_arn = module.api_gateway.api_gateway_arn
+  
+  tags = local.common_tags
+}
+
+# GuardDuty Module
+module "guardduty" {
+  source = "../modules/guardduty"
+  
+  project_name = var.project_name
+  environment  = var.environment
+  enable_guardduty = var.enable_guardduty
+  enable_s3_protection = var.enable_guardduty_s3_protection
+  enable_kubernetes_protection = var.enable_guardduty_kubernetes_protection
+  enable_malware_protection = var.enable_guardduty_malware_protection
+  kms_key_id = module.kms.kms_key_id
+  
+  tags = local.common_tags
+}
+
+# Amazon Inspector Module
+module "inspector" {
+  source = "../modules/inspector"
+  
+  project_name = var.project_name
+  environment  = var.environment
+  account_id   = data.aws_caller_identity.current.account_id
+  enable_inspector = var.enable_inspector
+  resource_types = var.inspector_resource_types
+  enable_ec2_scanning = var.enable_inspector_ec2
+  enable_ecr_scanning = var.enable_inspector_ecr
+  enable_lambda_scanning = var.enable_inspector_lambda
+  auto_run_assessment = var.enable_inspector_auto_run
+  
+  tags = local.common_tags
+}
+
+# Security Hub Module
+module "security_hub" {
+  source = "../modules/security-hub"
+  
+  project_name = var.project_name
+  environment  = var.environment
+  enable_security_hub = var.enable_security_hub
+  enable_default_standards = var.enable_security_hub_default_standards
+  enable_cis_standard = var.enable_security_hub_cis
+  enable_pci_standard = var.enable_security_hub_pci
+  enable_nist_standard = var.enable_security_hub_nist
+  enable_finding_aggregation = var.enable_security_hub_aggregation
+  
+  tags = local.common_tags
+}
+
+# Security Lake Module
+module "security_lake" {
+  source = "../modules/security-lake"
+  
+  project_name = var.project_name
+  environment  = var.environment
+  account_id   = data.aws_caller_identity.current.account_id
+  enable_security_lake = var.enable_security_lake
+  kms_key_id = module.kms.kms_key_id
+  
+  tags = local.common_tags
+}
+
+# Bedrock Module - Only create if OpenSearch is enabled
+module "bedrock" {
+  count = var.opensearch_instance_count > 0 ? 1 : 0
+  source = "../modules/bedrock"
+  
+  project_name = var.project_name
+  environment  = var.environment
+  bedrock_knowledge_base_role_arn = module.iam.bedrock_knowledge_base_role_arn
+  opensearch_collection_arn = module.opensearch.collection_arn
+  s3_bucket_arn = module.s3.documents_bucket_arn
+  s3_bucket_name = module.s3.documents_bucket_name
+  
+  tags = local.common_tags
+}
+
+# WAF Web ACL Association (if enabled)
+resource "aws_wafv2_web_acl_association" "api_gateway" {
+  count = var.enable_waf ? 1 : 0
+  
+  resource_arn = module.api_gateway.api_gateway_stage_arn
+  web_acl_arn  = module.waf.web_acl_arn
+}

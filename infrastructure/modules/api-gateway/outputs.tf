@@ -25,6 +25,11 @@ output "api_gateway_stage_name" {
   value       = aws_api_gateway_stage.main.stage_name
 }
 
+output "api_gateway_stage_arn" {
+  description = "ARN of the API Gateway stage"
+  value       = aws_api_gateway_stage.main.arn
+}
+
 output "api_gateway_name" {
   description = "Name of the API Gateway"
   value       = aws_api_gateway_rest_api.main.name
