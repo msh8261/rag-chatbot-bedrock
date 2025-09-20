@@ -2,7 +2,7 @@
 # This file contains all the configuration values for the Terraform deployment
 
 # Basic Configuration
-project_name = "rag-chatbot"
+project_name = "rag-chatbot-v2"
 environment  = "prod"
 aws_region   = "us-east-1"
 
