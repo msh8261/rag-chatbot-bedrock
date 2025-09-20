@@ -127,21 +127,21 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-southeast-1
+        aws-region: us-east-1
         
     - name: Check AWS Security Hub (if enabled)
       run: |
         # Check if Security Hub is enabled
-        if aws securityhub describe-hub --region ap-southeast-1 2>/dev/null; then
+        if aws securityhub describe-hub --region us-east-1 2>/dev/null; then
           echo "Security Hub is enabled, getting findings..."
-          aws securityhub get-findings --region ap-southeast-1 --max-items 10 || echo "No findings or subscription required"
+          aws securityhub get-findings --region us-east-1 --max-items 10 || echo "No findings or subscription required"
         else
           echo "Security Hub is not enabled or subscription required"
         fi
         
     - name: Check GuardDuty findings
       run: |
-        if aws guardduty list-detectors --region ap-southeast-1 --query 'DetectorIds[0]' --output text 2>/dev/null; then
+        if aws guardduty list-detectors --region us-east-1 --query 'DetectorIds[0]' --output text 2>/dev/null; then
           echo "GuardDuty is enabled"
         else
           echo "GuardDuty is not enabled"

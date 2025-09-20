@@ -11,8 +11,8 @@ on:
       - 'application/**'
 
 env:
-  AWS_REGION: 'ap-southeast-1'
-  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-1.amazonaws.com
+  AWS_REGION: 'us-east-1'
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
   ECR_REPOSITORY: rag-chatbot-prod-frontend
 
 jobs:
